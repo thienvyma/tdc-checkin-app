@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Check-in sự kiện TDC - Quét QR code hoặc nhập mã vé">
+    <title>Sự Kiện TDC - Check-in</title>
+    <link rel="stylesheet" href="style.css">
+    <!-- QR Code Scanner Library -->
+    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <h1>🎫 Sự Kiện TDC</h1>
+            <p>Check-in tham dự</p>
+        </header>
+
+        <!-- Tab Navigation -->
+        <div class="tabs">
+            <button class="tab-btn active" data-tab="scan">📷 Quét QR</button>
+            <button class="tab-btn" data-tab="manual">⌨️ Nhập mã</button>
+        </div>
+
+        <!-- Scan QR Tab -->
+        <div id="scan-tab" class="tab-content active">
+            <div class="scan-section">
+                <div id="qr-reader" class="qr-reader"></div>
+                <div id="qr-result" class="qr-result" style="display: none;">
+                    <p class="result-text"></p>
+                </div>
+                <button id="start-scan-btn" class="btn btn-primary">Bật Camera</button>
+                <button id="stop-scan-btn" class="btn btn-secondary" style="display: none;">Dừng Quét</button>
+            </div>
+        </div>
+
+        <!-- Manual Input Tab -->
+        <div id="manual-tab" class="tab-content">
+            <div class="manual-section">
+                <div class="input-group">
+                    <label for="ticket-code-input">Nhập mã vé:</label>
+                    <input 
+                        type="text" 
+                        id="ticket-code-input" 
+                        placeholder="EV-20251204-014944-DRI"
+                        class="ticket-input"
+                        autocomplete="off"
+                    >
+                    <div id="input-error" class="error-message" style="display: none;"></div>
+                </div>
+                <button id="checkin-btn" class="btn btn-primary">Check-in</button>
+            </div>
+        </div>
+
+        <!-- Result Display -->
+        <div id="result-section" class="result-section" style="display: none;">
+            <div id="result-content"></div>
+            <button id="checkin-another-btn" class="btn btn-secondary">Check-in tiếp</button>
+        </div>
+
+        <!-- Loading Overlay -->
+        <div id="loading" class="loading-overlay" style="display: none;">
+            <div class="spinner"></div>
+            <p>Đang xử lý...</p>
+        </div>
+    </div>
+
+    <!-- 
+    QUAN TRỌNG: Tạo file config.js từ config.example.js
+    1. Copy config.example.js thành config.js
+    2. Thay YOUR_APPS_SCRIPT_WEB_APP_URL_HERE bằng URL từ Google Apps Script
+    -->
+    <script src="config.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
+
