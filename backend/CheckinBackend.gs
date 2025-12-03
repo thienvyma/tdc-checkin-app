@@ -261,27 +261,17 @@ function createResponse(success, message, errorCode, data = null) {
     response.data = data;
   }
   
-  // Create output with CORS headers
+  // Create output (CORS headers are handled automatically by Google Apps Script Web App)
   const output = ContentService.createTextOutput(JSON.stringify(response))
-    .setMimeType(ContentService.MimeType.JSON)
-    .setHeaders({
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Accept',
-      'Access-Control-Max-Age': '3600'
-    });
+    .setMimeType(ContentService.MimeType.JSON);
   
   return output;
 }
 
 // Handle OPTIONS request for CORS preflight
 function doOptions() {
+  // CORS headers are handled automatically by Google Apps Script Web App
   return ContentService.createTextOutput('')
-    .setMimeType(ContentService.MimeType.JSON)
-    .setHeaders({
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type'
-    });
+    .setMimeType(ContentService.MimeType.JSON);
 }
 
