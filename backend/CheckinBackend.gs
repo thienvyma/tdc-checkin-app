@@ -190,26 +190,51 @@ function processCheckin(ticketCode, checkinMethod) {
     const email = data[foundRow - 1][1] || '';
     
     // Format: In đậm + màu nền xanh lá nổi bật + màu chữ trắng
+    // Lấy lại range để đảm bảo reference đúng
     try {
-      Logger.log('🎨 Bắt đầu format cell...');
-      statusRange.setFontWeight('bold');
+      Logger.log('🎨 Bắt đầu format cell tại row ' + foundRow + ', column 6...');
+      
+      // Lấy lại range để đảm bảo reference đúng
+      const formatRange = ticketSheet.getRange(foundRow, 6);
+      
+      // Apply formatting từng bước
+      formatRange.setFontWeight('bold');
       Logger.log('✅ Đã set font weight: bold');
       
-      statusRange.setBackground('#28a745'); // Màu xanh lá đẹp
+      formatRange.setBackground('#28a745'); // Màu xanh lá đẹp
       Logger.log('✅ Đã set background: #28a745');
       
-      statusRange.setFontColor('#ffffff'); // Chữ trắng để nổi bật
+      formatRange.setFontColor('#ffffff'); // Chữ trắng để nổi bật
       Logger.log('✅ Đã set font color: #ffffff');
       
-      statusRange.setHorizontalAlignment('center'); // Căn giữa cho đẹp
+      formatRange.setHorizontalAlignment('center'); // Căn giữa cho đẹp
       Logger.log('✅ Đã set alignment: center');
+      
+      // Verify formatting bằng cách đọc lại
+      const fontWeight = formatRange.getFontWeight();
+      const bgColor = formatRange.getBackground();
+      const fontColor = formatRange.getFontColor();
+      Logger.log('🔍 Verify - Font weight: ' + fontWeight + ', Background: ' + bgColor + ', Font color: ' + fontColor);
       
       Logger.log('✅ Hoàn tất format trạng thái "Đã check-in" với màu xanh lá và chữ in đậm tại row ' + foundRow);
     } catch (formatError) {
       // Nếu formatting lỗi, log chi tiết
       Logger.log('❌ Formatting error: ' + formatError.toString());
-      Logger.log('❌ Error stack: ' + formatError.stack);
+      Logger.log('❌ Error stack: ' + (formatError.stack || 'No stack trace'));
       Logger.log('⚠️ Giá trị "Đã check-in" đã được cập nhật nhưng formatting có thể không áp dụng');
+      
+      // Thử format lại với cách khác (A1 notation)
+      try {
+        const a1Notation = 'F' + foundRow;
+        const altRange = ticketSheet.getRange(a1Notation);
+        altRange.setFontWeight('bold');
+        altRange.setBackground('#28a745');
+        altRange.setFontColor('#ffffff');
+        altRange.setHorizontalAlignment('center');
+        Logger.log('✅ Đã format lại thành công bằng A1 notation: ' + a1Notation);
+      } catch (altError) {
+        Logger.log('❌ Format bằng A1 notation cũng lỗi: ' + altError.toString());
+      }
     }
     
     // Log check-in
