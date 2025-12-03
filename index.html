@@ -4,39 +4,58 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="Check-in sự kiện TDC - Quét QR code hoặc nhập mã vé">
+    <meta name="theme-color" content="#667eea">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="TDC Check-in">
+    
+    <!-- Open Graph / Social Media -->
+    <meta property="og:title" content="Sự Kiện TDC - Check-in">
+    <meta property="og:description" content="Check-in sự kiện TDC - Quét QR code hoặc nhập mã vé">
+    <meta property="og:type" content="website">
+    
     <title>Sự Kiện TDC - Check-in</title>
     <link rel="stylesheet" href="style.css">
-    <!-- QR Code Scanner Library - Updated to latest version for better performance -->
-    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+    
+    <!-- QR Code Scanner Library - Load with defer for better performance -->
+    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js" defer></script>
 </head>
 <body>
     <div class="container">
         <!-- Header -->
         <header class="header">
-            <h1>🎫 Sự Kiện TDC</h1>
+            <h1>🎫 TDC Check-in</h1>
             <p>Check-in tham dự</p>
         </header>
 
         <!-- Tab Navigation -->
-        <div class="tabs">
-            <button class="tab-btn active" data-tab="scan">📷 Quét QR</button>
-            <button class="tab-btn" data-tab="manual">⌨️ Nhập mã</button>
+        <div class="tabs" role="tablist">
+            <button class="tab-btn active" data-tab="scan" role="tab" aria-selected="true" aria-controls="scan-tab" aria-label="Quét mã QR code">
+                📷 Quét QR
+            </button>
+            <button class="tab-btn" data-tab="manual" role="tab" aria-selected="false" aria-controls="manual-tab" aria-label="Nhập mã vé thủ công">
+                ⌨️ Nhập mã
+            </button>
         </div>
 
         <!-- Scan QR Tab -->
-        <div id="scan-tab" class="tab-content active">
+        <div id="scan-tab" class="tab-content active" role="tabpanel" aria-labelledby="scan-tab">
             <div class="scan-section">
-                <div id="qr-reader" class="qr-reader"></div>
-                <div id="qr-result" class="qr-result" style="display: none;">
+                <div id="qr-reader" class="qr-reader" aria-label="Khu vực quét mã QR code"></div>
+                <div id="qr-result" class="qr-result" style="display: none;" role="status" aria-live="polite">
                     <p class="result-text"></p>
                 </div>
-                <button id="start-scan-btn" class="btn btn-primary">Bật Camera</button>
-                <button id="stop-scan-btn" class="btn btn-secondary" style="display: none;">Dừng Quét</button>
+                <button id="start-scan-btn" class="btn btn-primary" aria-label="Bật camera để quét mã QR code">
+                    Bật Camera
+                </button>
+                <button id="stop-scan-btn" class="btn btn-secondary" style="display: none;" aria-label="Dừng quét mã QR code">
+                    Dừng Quét
+                </button>
             </div>
         </div>
 
         <!-- Manual Input Tab -->
-        <div id="manual-tab" class="tab-content">
+        <div id="manual-tab" class="tab-content" role="tabpanel" aria-labelledby="manual-tab">
             <div class="manual-section">
                 <div class="input-group">
                     <label for="ticket-code-input">Nhập mã vé:</label>
@@ -46,22 +65,28 @@
                         placeholder="EV-20251204-014944-DRI"
                         class="ticket-input"
                         autocomplete="off"
+                        aria-label="Nhập mã vé để check-in"
+                        aria-describedby="input-error"
                     >
-                    <div id="input-error" class="error-message" style="display: none;"></div>
+                    <div id="input-error" class="error-message" style="display: none;" role="alert" aria-live="polite"></div>
                 </div>
-                <button id="checkin-btn" class="btn btn-primary">Check-in</button>
+                <button id="checkin-btn" class="btn btn-primary" aria-label="Thực hiện check-in với mã vé đã nhập">
+                    Check-in
+                </button>
             </div>
         </div>
 
         <!-- Result Display -->
-        <div id="result-section" class="result-section" style="display: none;">
+        <div id="result-section" class="result-section" style="display: none;" role="region" aria-live="polite" aria-label="Kết quả check-in">
             <div id="result-content"></div>
-            <button id="checkin-another-btn" class="btn btn-secondary">Check-in tiếp</button>
+            <button id="checkin-another-btn" class="btn btn-secondary" aria-label="Check-in cho người tiếp theo">
+                Check-in tiếp
+            </button>
         </div>
 
         <!-- Loading Overlay -->
-        <div id="loading" class="loading-overlay" style="display: none;">
-            <div class="spinner"></div>
+        <div id="loading" class="loading-overlay" style="display: none;" role="status" aria-live="polite" aria-label="Đang xử lý">
+            <div class="spinner" aria-hidden="true"></div>
             <p>Đang xử lý...</p>
         </div>
     </div>
@@ -71,15 +96,11 @@
     1. Copy config.example.js thành config.js
     2. Thay YOUR_APPS_SCRIPT_WEB_APP_URL_HERE bằng URL từ Google Apps Script
     -->
+    <!-- Load config first -->
     <script src="config.js"></script>
-    <script>
-        // Verify config is loaded before main script
-        if (typeof CONFIG === 'undefined') {
-            console.error('❌ CONFIG not loaded! Make sure config.js exists and is loaded before script.js');
-            document.body.innerHTML = '<div style="padding: 20px; text-align: center;"><h2>Lỗi: Không thể load cấu hình</h2><p>Vui lòng kiểm tra file config.js</p></div>';
-        }
-    </script>
+    <!-- Main application script -->
     <script src="script.js"></script>
+    <!-- Config verification moved to script.js for better error handling -->
 </body>
 </html>
 
