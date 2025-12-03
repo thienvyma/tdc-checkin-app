@@ -47,6 +47,8 @@ body {
     display: flex;
     background: #f8f9fa;
     border-bottom: 2px solid #e0e0e0;
+    position: relative;
+    z-index: 10;
 }
 
 .tab-btn {
@@ -60,6 +62,11 @@ body {
     color: #666;
     transition: all 0.3s;
     border-bottom: 3px solid transparent;
+    position: relative;
+    z-index: 10;
+    pointer-events: auto;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
 }
 
 .tab-btn:hover {

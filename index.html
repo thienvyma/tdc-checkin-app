@@ -72,6 +72,13 @@
     2. Thay YOUR_APPS_SCRIPT_WEB_APP_URL_HERE bằng URL từ Google Apps Script
     -->
     <script src="config.js"></script>
+    <script>
+        // Verify config is loaded before main script
+        if (typeof CONFIG === 'undefined') {
+            console.error('❌ CONFIG not loaded! Make sure config.js exists and is loaded before script.js');
+            document.body.innerHTML = '<div style="padding: 20px; text-align: center;"><h2>Lỗi: Không thể load cấu hình</h2><p>Vui lòng kiểm tra file config.js</p></div>';
+        }
+    </script>
     <script src="script.js"></script>
 </body>
 </html>

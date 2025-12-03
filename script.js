@@ -38,26 +38,58 @@ function initTabs() {
     const tabButtons = document.querySelectorAll('.tab-btn');
     const tabContents = document.querySelectorAll('.tab-content');
     
-    tabButtons.forEach(btn => {
-        btn.addEventListener('click', function() {
-            const targetTab = this.getAttribute('data-tab');
-            
-            // Stop scanning when switching tabs
-            if (isScanning) {
-                stopScanning();
-            }
-            
-            // Update active tab
-            tabButtons.forEach(b => b.classList.remove('active'));
-            tabContents.forEach(c => c.classList.remove('active'));
-            
-            this.classList.add('active');
-            document.getElementById(targetTab + '-tab').classList.add('active');
-            
-            // Hide result section
-            document.getElementById('result-section').style.display = 'none';
+    console.log('🔧 Khởi tạo tabs, tìm thấy', tabButtons.length, 'buttons');
+    
+    tabButtons.forEach((btn, index) => {
+        console.log('🔘 Tab button', index, btn.getAttribute('data-tab'));
+        
+        // Use both click and touchstart for better mobile support
+        ['click', 'touchend'].forEach(eventType => {
+            btn.addEventListener(eventType, function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                console.log('👆 Tab clicked:', this.getAttribute('data-tab'));
+                
+                const targetTab = this.getAttribute('data-tab');
+                
+                if (!targetTab) {
+                    console.error('❌ No data-tab attribute');
+                    return;
+                }
+                
+                // Stop scanning when switching tabs
+                if (isScanning) {
+                    stopScanning();
+                }
+                
+                // Update active tab
+                tabButtons.forEach(b => b.classList.remove('active'));
+                tabContents.forEach(c => c.classList.remove('active'));
+                
+                this.classList.add('active');
+                const targetElement = document.getElementById(targetTab + '-tab');
+                
+                if (targetElement) {
+                    targetElement.classList.add('active');
+                    console.log('✅ Switched to tab:', targetTab);
+                } else {
+                    console.error('❌ Tab element not found:', targetTab + '-tab');
+                }
+                
+                // Hide result section
+                const resultSection = document.getElementById('result-section');
+                if (resultSection) {
+                    resultSection.style.display = 'none';
+                }
+            }, { passive: false });
         });
     });
+    
+    // Verify tabs are initialized
+    if (tabButtons.length === 0) {
+        console.error('❌ No tab buttons found!');
+    }
 }
 
 // ==================== QR CODE SCANNER ====================
@@ -262,7 +294,8 @@ function processCheckin(ticketCode, method) {
     const xhr = new XMLHttpRequest();
     xhr.open('GET', url, true);
     xhr.setRequestHeader('Accept', 'application/json');
-    xhr.timeout = 15000; // 15 seconds timeout
+    xhr.setRequestHeader('Content-Type', 'application/json');
+    xhr.timeout = 20000; // 20 seconds timeout (mobile networks can be slow)
     
     xhr.onload = function() {
         console.log('📥 Response status:', xhr.status);
@@ -270,29 +303,43 @@ function processCheckin(ticketCode, method) {
         
         hideLoading();
         
-        if (xhr.status === 200 || xhr.status === 0) { // 0 for CORS success
+        // Google Apps Script Web App returns status 200 or 0 (for CORS)
+        if (xhr.status === 200 || xhr.status === 0 || xhr.status === 304) {
             try {
-                const result = JSON.parse(xhr.responseText);
+                let responseText = xhr.responseText;
+                console.log('📥 Raw response:', responseText);
+                
+                // Remove any potential BOM or whitespace
+                responseText = responseText.trim();
+                
+                // Try to parse JSON
+                const result = JSON.parse(responseText);
                 console.log('✅ Parsed result:', result);
+                hideLoading();
                 showResult(result);
             } catch (e) {
-                console.error('❌ Parse error:', e, 'Response:', xhr.responseText);
-                // Try to show raw response
-                if (xhr.responseText.includes('success')) {
-                    // Maybe it's already JSON but with some wrapper
+                console.error('❌ Parse error:', e);
+                console.error('Response text:', xhr.responseText);
+                hideLoading();
+                
+                // Try to extract JSON from HTML response (sometimes GAS wraps it)
+                const jsonMatch = xhr.responseText.match(/\{[\s\S]*\}/);
+                if (jsonMatch) {
                     try {
-                        const result = JSON.parse(xhr.responseText);
+                        const result = JSON.parse(jsonMatch[0]);
                         showResult(result);
                     } catch (e2) {
                         showError('Không thể đọc phản hồi từ server. Vui lòng thử lại.');
                     }
                 } else {
-                    showError('Phản hồi từ server không hợp lệ. Vui lòng thử lại.');
+                    showError('Phản hồi từ server không hợp lệ. Vui lòng thử lại hoặc kiểm tra Console để xem chi tiết.');
                 }
             }
         } else {
             console.error('❌ HTTP Error:', xhr.status, xhr.statusText);
-            showError('Lỗi kết nối: ' + xhr.status + ' ' + xhr.statusText);
+            console.error('Response:', xhr.responseText);
+            hideLoading();
+            showError('Lỗi kết nối: ' + xhr.status + ' ' + xhr.statusText + '. Vui lòng thử lại.');
         }
     };
     
