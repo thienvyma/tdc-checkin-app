@@ -178,33 +178,33 @@ function processCheckin(ticketCode, checkinMethod) {
     const statusRange = ticketSheet.getRange(foundRow, 6);
     statusRange.setValue('Đã check-in');
     
-    // Format: In đậm + màu nền xanh lá nổi bật + màu chữ trắng
+    // Update check-in time (column G = index 7)
+    ticketSheet.getRange(foundRow, 7).setValue(checkinTime);
+    
+    // Get user info trước khi format (để đảm bảo có data trả về)
+    const name = data[foundRow - 1][2] || '';
+    const email = data[foundRow - 1][1] || '';
+    
+    // Format: In đậm + màu nền xanh lá nổi bật + màu chữ trắng (non-blocking)
     try {
       statusRange.setFontWeight('bold');
       statusRange.setBackground('#28a745'); // Màu xanh lá đẹp
       statusRange.setFontColor('#ffffff'); // Chữ trắng để nổi bật
       statusRange.setHorizontalAlignment('center'); // Căn giữa cho đẹp
-      
-      // Force flush để đảm bảo formatting được apply ngay
-      SpreadsheetApp.flush();
-      
       Logger.log('✅ Đã format trạng thái "Đã check-in" với màu xanh lá và chữ in đậm');
     } catch (formatError) {
-      // Nếu formatting lỗi, log nhưng vẫn tiếp tục
+      // Nếu formatting lỗi, log nhưng vẫn tiếp tục (không block response)
       Logger.log('⚠️ Formatting error (non-critical): ' + formatError.toString());
-      Logger.log('⚠️ Giá trị "Đã check-in" đã được cập nhật nhưng formatting có thể không áp dụng');
     }
     
-    // Update check-in time (column G = index 7)
-    ticketSheet.getRange(foundRow, 7).setValue(checkinTime);
-    
-    // Get user info
-    const name = data[foundRow - 1][2] || '';
-    const email = data[foundRow - 1][1] || '';
-    
     // Log check-in
-    logCheckin(ticketCode, name, email, checkinTime, checkinMethod);
+    try {
+      logCheckin(ticketCode, name, email, checkinTime, checkinMethod);
+    } catch (logError) {
+      Logger.log('⚠️ Log error (non-critical): ' + logError.toString());
+    }
     
+    // Trả về response ngay lập tức (không đợi formatting)
     return createResponse(true, 'Check-in thành công!', 'SUCCESS', {
       ticketCode: ticketCode,
       name: name,
