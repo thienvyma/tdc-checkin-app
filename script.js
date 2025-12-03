@@ -290,72 +290,134 @@ function processCheckin(ticketCode, method) {
     
     console.log('📡 Gửi request đến:', url);
     
-    // Use XMLHttpRequest (better CORS handling with Google Apps Script)
+    // Try multiple methods for better compatibility
+    // Method 1: XMLHttpRequest
+    tryXHRRequest(url);
+}
+
+// Try XMLHttpRequest first
+function tryXHRRequest(url) {
     const xhr = new XMLHttpRequest();
     xhr.open('GET', url, true);
     xhr.setRequestHeader('Accept', 'application/json');
-    xhr.setRequestHeader('Content-Type', 'application/json');
-    xhr.timeout = 20000; // 20 seconds timeout (mobile networks can be slow)
+    xhr.timeout = 20000; // 20 seconds timeout
     
     xhr.onload = function() {
-        console.log('📥 Response status:', xhr.status);
-        console.log('📥 Response text:', xhr.responseText);
+        console.log('📥 XHR Response status:', xhr.status);
+        console.log('📥 XHR Response text:', xhr.responseText);
         
-        hideLoading();
-        
-        // Google Apps Script Web App returns status 200 or 0 (for CORS)
+        // Google Apps Script Web App can return 200, 0, or 304
         if (xhr.status === 200 || xhr.status === 0 || xhr.status === 304) {
-            try {
-                let responseText = xhr.responseText;
-                console.log('📥 Raw response:', responseText);
-                
-                // Remove any potential BOM or whitespace
-                responseText = responseText.trim();
-                
-                // Try to parse JSON
-                const result = JSON.parse(responseText);
-                console.log('✅ Parsed result:', result);
-                hideLoading();
-                showResult(result);
-            } catch (e) {
-                console.error('❌ Parse error:', e);
-                console.error('Response text:', xhr.responseText);
-                hideLoading();
-                
-                // Try to extract JSON from HTML response (sometimes GAS wraps it)
-                const jsonMatch = xhr.responseText.match(/\{[\s\S]*\}/);
-                if (jsonMatch) {
-                    try {
-                        const result = JSON.parse(jsonMatch[0]);
-                        showResult(result);
-                    } catch (e2) {
-                        showError('Không thể đọc phản hồi từ server. Vui lòng thử lại.');
-                    }
-                } else {
-                    showError('Phản hồi từ server không hợp lệ. Vui lòng thử lại hoặc kiểm tra Console để xem chi tiết.');
-                }
-            }
+            processResponse(xhr.responseText);
         } else {
-            console.error('❌ HTTP Error:', xhr.status, xhr.statusText);
-            console.error('Response:', xhr.responseText);
-            hideLoading();
-            showError('Lỗi kết nối: ' + xhr.status + ' ' + xhr.statusText + '. Vui lòng thử lại.');
+            console.error('❌ XHR HTTP Error:', xhr.status, xhr.statusText);
+            // Try JSONP as fallback
+            tryJSONPRequest(url);
         }
     };
     
     xhr.onerror = function() {
-        console.error('❌ Network error');
-        hideLoading();
-        showError('Không thể kết nối đến server. Vui lòng kiểm tra kết nối internet và thử lại.');
+        console.error('❌ XHR Network error');
+        // Try JSONP as fallback
+        tryJSONPRequest(url);
     };
     
     xhr.ontimeout = function() {
-        console.error('❌ Request timeout');
+        console.error('❌ XHR Request timeout');
         hideLoading();
         showError('Request timeout. Server không phản hồi. Vui lòng thử lại sau.');
     };
     
-    xhr.send();
+    try {
+        xhr.send();
+    } catch (e) {
+        console.error('❌ XHR Send error:', e);
+        // Try JSONP as fallback
+        tryJSONPRequest(url);
+    }
+}
+
+// Fallback: JSONP method (works better with Google Apps Script CORS)
+function tryJSONPRequest(url) {
+    console.log('🔄 Trying JSONP method...');
+    
+    // Create callback function name
+    const callbackName = 'checkinCallback_' + Date.now();
+    
+    // Create script tag
+    const script = document.createElement('script');
+    script.src = url + (url.includes('?') ? '&' : '?') + 'callback=' + callbackName;
+    
+    // Create global callback
+    window[callbackName] = function(data) {
+        console.log('📥 JSONP Response:', data);
+        delete window[callbackName];
+        document.body.removeChild(script);
+        processResponse(JSON.stringify(data));
+    };
+    
+    // Error handling
+    script.onerror = function() {
+        console.error('❌ JSONP Error');
+        delete window[callbackName];
+        document.body.removeChild(script);
+        hideLoading();
+        showError('Không thể kết nối đến server. Vui lòng kiểm tra kết nối và thử lại.');
+    };
+    
+    // Timeout
+    setTimeout(function() {
+        if (window[callbackName]) {
+            console.error('❌ JSONP Timeout');
+            delete window[callbackName];
+            if (script.parentNode) {
+                document.body.removeChild(script);
+            }
+            hideLoading();
+            showError('Request timeout. Vui lòng thử lại sau.');
+        }
+    }, 20000);
+    
+    document.body.appendChild(script);
+}
+
+// Process response (common for both methods)
+function processResponse(responseText) {
+    hideLoading();
+    
+    if (!responseText) {
+        showError('Không nhận được phản hồi từ server.');
+        return;
+    }
+    
+    try {
+        // Remove any potential BOM, whitespace, or HTML wrapper
+        let cleanText = responseText.trim();
+        
+        // Remove HTML tags if wrapped
+        if (cleanText.includes('<') && cleanText.includes('>')) {
+            // Extract JSON from HTML
+            const jsonMatch = cleanText.match(/\{[\s\S]*\}/);
+            if (jsonMatch) {
+                cleanText = jsonMatch[0];
+            }
+        }
+        
+        // Remove any leading/trailing characters that might break JSON
+        cleanText = cleanText.replace(/^[^{]*/, '').replace(/[^}]*$/, '');
+        
+        console.log('📝 Cleaned response:', cleanText);
+        
+        // Parse JSON
+        const result = JSON.parse(cleanText);
+        console.log('✅ Parsed result:', result);
+        showResult(result);
+        
+    } catch (e) {
+        console.error('❌ Parse error:', e);
+        console.error('Original response:', responseText);
+        showError('Không thể đọc phản hồi từ server. Vui lòng kiểm tra Console để xem chi tiết hoặc thử lại.');
+    }
 }
 
 // ==================== UI HELPERS ====================

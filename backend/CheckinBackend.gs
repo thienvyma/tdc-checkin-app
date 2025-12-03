@@ -79,10 +79,30 @@ function doGet(e) {
     
     const action = e.parameter.action || '';
     const ticketCode = (e.parameter.ticketCode || '').trim().toUpperCase();
+    const callback = e.parameter.callback || ''; // For JSONP support
     
     if (action === 'checkin' && ticketCode) {
       // Process check-in via GET (workaround)
-      return processCheckin(ticketCode, e.parameter.checkinMethod || 'manual');
+      const result = processCheckin(ticketCode, e.parameter.checkinMethod || 'manual');
+      
+      // If callback provided, return JSONP
+      if (callback) {
+        try {
+          const jsonContent = result.getContent();
+          const jsonpResponse = callback + '(' + jsonContent + ');';
+          return ContentService.createTextOutput(jsonpResponse)
+            .setMimeType(ContentService.MimeType.JAVASCRIPT)
+            .setHeaders({
+              'Access-Control-Allow-Origin': '*'
+            });
+        } catch (e) {
+          Logger.log('JSONP error: ' + e.toString());
+          // Fallback to regular JSON
+          return result;
+        }
+      }
+      
+      return result;
     }
     
     // Default: return info
