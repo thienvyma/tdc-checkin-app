@@ -1,5 +1,6 @@
 # Config files with sensitive data
-config.js
+# config.js - Tạm thời bỏ comment để commit lên GitHub cho Netlify
+# Sau khi deploy xong có thể uncomment lại
 
 # OS files
 .DS_Store
