@@ -176,7 +176,11 @@ function processCheckin(ticketCode, checkinMethod) {
     
     // Update status (column F = index 6) với formatting nổi bật
     const statusRange = ticketSheet.getRange(foundRow, 6);
+    Logger.log('📝 Updating status at row ' + foundRow + ', column 6');
+    
+    // Set value trước
     statusRange.setValue('Đã check-in');
+    Logger.log('✅ Đã set value "Đã check-in"');
     
     // Update check-in time (column G = index 7)
     ticketSheet.getRange(foundRow, 7).setValue(checkinTime);
@@ -185,16 +189,27 @@ function processCheckin(ticketCode, checkinMethod) {
     const name = data[foundRow - 1][2] || '';
     const email = data[foundRow - 1][1] || '';
     
-    // Format: In đậm + màu nền xanh lá nổi bật + màu chữ trắng (non-blocking)
+    // Format: In đậm + màu nền xanh lá nổi bật + màu chữ trắng
     try {
+      Logger.log('🎨 Bắt đầu format cell...');
       statusRange.setFontWeight('bold');
+      Logger.log('✅ Đã set font weight: bold');
+      
       statusRange.setBackground('#28a745'); // Màu xanh lá đẹp
+      Logger.log('✅ Đã set background: #28a745');
+      
       statusRange.setFontColor('#ffffff'); // Chữ trắng để nổi bật
+      Logger.log('✅ Đã set font color: #ffffff');
+      
       statusRange.setHorizontalAlignment('center'); // Căn giữa cho đẹp
-      Logger.log('✅ Đã format trạng thái "Đã check-in" với màu xanh lá và chữ in đậm');
+      Logger.log('✅ Đã set alignment: center');
+      
+      Logger.log('✅ Hoàn tất format trạng thái "Đã check-in" với màu xanh lá và chữ in đậm tại row ' + foundRow);
     } catch (formatError) {
-      // Nếu formatting lỗi, log nhưng vẫn tiếp tục (không block response)
-      Logger.log('⚠️ Formatting error (non-critical): ' + formatError.toString());
+      // Nếu formatting lỗi, log chi tiết
+      Logger.log('❌ Formatting error: ' + formatError.toString());
+      Logger.log('❌ Error stack: ' + formatError.stack);
+      Logger.log('⚠️ Giá trị "Đã check-in" đã được cập nhật nhưng formatting có thể không áp dụng');
     }
     
     // Log check-in
