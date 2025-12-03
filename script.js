@@ -675,6 +675,13 @@ function showResult(result) {
     }
     
     resultSection.style.display = 'block';
+    
+    // Reset processing flag sau 2 giây để có thể scan tiếp
+    setTimeout(() => {
+        isProcessingScan = false;
+        lastScannedCode = ''; // Reset mã đã scan sau 2 giây
+        console.log('✅ Ready for next scan');
+    }, 2000);
 }
 
 function showError(message) {
