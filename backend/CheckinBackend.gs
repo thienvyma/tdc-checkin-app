@@ -174,8 +174,15 @@ function processCheckin(ticketCode, checkinMethod) {
     const now = new Date();
     const checkinTime = Utilities.formatDate(now, Session.getScriptTimeZone(), 'dd/MM/yyyy HH:mm:ss');
     
-    // Update status (column F = index 6)
-    ticketSheet.getRange(foundRow, 6).setValue('Đã check-in');
+    // Update status (column F = index 6) với formatting nổi bật
+    const statusRange = ticketSheet.getRange(foundRow, 6);
+    statusRange.setValue('Đã check-in');
+    // Format: In đậm + màu nền xanh lá nổi bật + màu chữ trắng
+    statusRange.setFontWeight('bold');
+    statusRange.setBackground('#28a745'); // Màu xanh lá đẹp
+    statusRange.setFontColor('#ffffff'); // Chữ trắng để nổi bật
+    statusRange.setHorizontalAlignment('center'); // Căn giữa cho đẹp
+    
     // Update check-in time (column G = index 7)
     ticketSheet.getRange(foundRow, 7).setValue(checkinTime);
     
