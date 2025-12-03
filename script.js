@@ -202,15 +202,28 @@ function stopScanning() {
 }
 
 function onScanSuccess(decodedText, decodedResult) {
-    // Stop scanning
-    stopScanning();
+    // Stop scanning IMMEDIATELY để tránh scan nhiều lần và tiết kiệm tài nguyên
+    if (isScanning && html5QrCode) {
+        html5QrCode.stop().catch(() => {}); // Stop ngay, không đợi promise
+        html5QrCode.clear();
+        html5QrCode = null;
+        isScanning = false;
+    }
+    
+    console.log('✅ QR Code scanned:', decodedText);
+    
+    // Update UI nhanh
+    const startBtn = document.getElementById('start-scan-btn');
+    const stopBtn = document.getElementById('stop-scan-btn');
+    startBtn.style.display = 'block';
+    stopBtn.style.display = 'none';
     
     // Show scanned code
     const qrResult = document.getElementById('qr-result');
     qrResult.style.display = 'block';
     qrResult.querySelector('.result-text').textContent = `Đã quét: ${decodedText}`;
     
-    // Process check-in
+    // Process check-in ngay lập tức (không delay)
     processCheckin(decodedText.trim().toUpperCase(), 'qr');
 }
 
