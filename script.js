@@ -115,39 +115,27 @@ function startScanning() {
     // Initialize scanner
     html5QrCode = new Html5Qrcode("qr-reader");
     
-    // Calculate optimal QR box size based on screen
-    const qrReaderElement = qrReader;
-    const readerWidth = qrReaderElement.clientWidth || 300;
-    const readerHeight = qrReaderElement.clientHeight || 300;
-    const qrBoxSize = Math.min(readerWidth, readerHeight) * 0.75; // 75% for better detection
+    console.log('📷 Starting QR scanner with MAXIMUM SPEED settings...');
     
-    console.log('📷 Starting QR scanner with optimized settings...');
-    console.log('📐 QR Box size:', qrBoxSize);
-    
-    // Optimized settings for speed and accuracy
+    // TỐI ƯU TỐC ĐỘ TỐI ĐA - Giảm resolution và QR box để xử lý nhanh nhất
     html5QrCode.start(
         { 
-            facingMode: "environment" // Use back camera (không mirror)
+            facingMode: "environment"
         },
         {
-            fps: 30, // High FPS for fast scanning
+            fps: 30, // FPS cao để quét nhiều frame hơn
             qrbox: { 
-                width: Math.min(qrBoxSize, 350), // Optimal size for detection
-                height: Math.min(qrBoxSize, 350) 
+                width: 250, // QR box nhỏ hơn = xử lý ít pixel hơn = nhanh hơn
+                height: 250 
             },
-            aspectRatio: 1.0, // Square for better QR code detection
-            disableFlip: true, // Disable flip to prevent rotation issues
-            // Lower resolution for faster processing (tốc độ quan trọng hơn độ nét)
+            // Bỏ aspectRatio và các tùy chọn không cần thiết
+            disableFlip: true,
+            // Resolution THẤP NHẤT có thể để tăng tốc độ xử lý
             videoConstraints: {
                 facingMode: "environment",
-                width: { ideal: 640, max: 1280 }, // Giảm resolution để tăng tốc độ
-                height: { ideal: 640, max: 1280 }
-            },
-            // Additional optimizations for speed
-            // formatsToSupport: [ Html5QrcodeSupportedFormats.QR_CODE ], // Chỉ scan QR code (nếu library hỗ trợ)
-            // experimentalFeatures: {
-            //     useBarCodeDetectorIfSupported: true // Use native barcode detector if available (faster)
-            // }
+                width: { ideal: 320, max: 640 }, // Resolution rất thấp để xử lý nhanh
+                height: { ideal: 240, max: 480 }
+            }
         },
         onScanSuccess,
         onScanError
@@ -155,50 +143,45 @@ function startScanning() {
         isScanning = true;
         startBtn.style.display = 'none';
         stopBtn.style.display = 'block';
-        console.log('✅ QR scanner started successfully');
+        console.log('✅ QR scanner started with fast settings');
         
-        // Fix camera orientation after start
+        // Fix camera orientation
         setTimeout(() => {
             const videoElement = qrReader.querySelector('video');
             if (videoElement) {
-                videoElement.style.transform = 'none'; // Không mirror cho back camera
+                videoElement.style.transform = 'none';
                 videoElement.style.objectFit = 'cover';
             }
-        }, 100);
+        }, 50);
     }).catch(err => {
         console.error('❌ Error starting scanner:', err);
-        // Try with lower settings if high settings fail
-        if (err.toString().includes('NotReadableError') || err.toString().includes('OverconstrainedError')) {
-            console.log('⚠️ Trying with lower resolution...');
-            html5QrCode.start(
-                { facingMode: "environment" },
-                {
-                    fps: 25, // Still fast but more compatible
-                    qrbox: { width: 300, height: 300 },
-                    disableFlip: true
-                },
-                onScanSuccess,
-                onScanError
-            ).then(() => {
-                isScanning = true;
-                startBtn.style.display = 'none';
-                stopBtn.style.display = 'block';
-                
-                // Fix camera orientation
-                setTimeout(() => {
-                    const videoElement = qrReader.querySelector('video');
-                    if (videoElement) {
-                        videoElement.style.transform = 'none';
-                        videoElement.style.objectFit = 'cover';
-                    }
-                }, 100);
-            }).catch(err2 => {
-                console.error('❌ Error with fallback settings:', err2);
-                showError('Không thể khởi động camera. Vui lòng kiểm tra quyền truy cập camera.');
-            });
-        } else {
+        // Fallback với settings đơn giản nhất
+        console.log('⚠️ Trying with minimal settings...');
+        html5QrCode.start(
+            { facingMode: "environment" },
+            {
+                fps: 30,
+                qrbox: { width: 250, height: 250 }
+                // Không set videoConstraints để browser tự chọn resolution thấp nhất
+            },
+            onScanSuccess,
+            onScanError
+        ).then(() => {
+            isScanning = true;
+            startBtn.style.display = 'none';
+            stopBtn.style.display = 'block';
+            
+            setTimeout(() => {
+                const videoElement = qrReader.querySelector('video');
+                if (videoElement) {
+                    videoElement.style.transform = 'none';
+                    videoElement.style.objectFit = 'cover';
+                }
+            }, 50);
+        }).catch(err2 => {
+            console.error('❌ Error with fallback settings:', err2);
             showError('Không thể khởi động camera. Vui lòng kiểm tra quyền truy cập camera.');
-        }
+        });
     });
 }
 
