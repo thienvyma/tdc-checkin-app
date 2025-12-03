@@ -186,45 +186,61 @@ function startScanning() {
 }
 
 function stopScanning() {
-    if (!isScanning || !html5QrCode) return;
+    if (!html5QrCode || !isScanning) return;
+    
+    // Stop scanner nhưng GIỮ instance để không phải xin quyền lại
+    isScanning = false;
+    isProcessingScan = false;
     
     html5QrCode.stop().then(() => {
-        html5QrCode.clear();
-        html5QrCode = null;
-        isScanning = false;
-        
-        document.getElementById('start-scan-btn').style.display = 'block';
-        document.getElementById('stop-scan-btn').style.display = 'none';
-        document.getElementById('qr-result').style.display = 'none';
-    }).catch(err => {
-        console.error('Error stopping scanner:', err);
+        console.log('✅ Scanner stopped (instance kept)');
+    }).catch((err) => {
+        console.warn('⚠️ Error stopping scanner:', err);
     });
+    
+    const startBtn = document.getElementById('start-scan-btn');
+    const stopBtn = document.getElementById('stop-scan-btn');
+    const qrResult = document.getElementById('qr-result');
+    
+    if (startBtn) {
+        startBtn.style.display = 'block';
+        startBtn.textContent = 'Bật Camera';
+    }
+    if (stopBtn) stopBtn.style.display = 'none';
+    if (qrResult) qrResult.style.display = 'none';
 }
 
+// Flag để tạm dừng xử lý scan (tránh scan nhiều lần)
+let isProcessingScan = false;
+
 function onScanSuccess(decodedText, decodedResult) {
-    console.log('✅ QR Code scanned:', decodedText);
+    // Nếu đang xử lý scan trước đó, bỏ qua
+    if (isProcessingScan) {
+        console.log('⏸️ Đang xử lý scan trước đó, bỏ qua scan mới');
+        return;
+    }
     
-    // Stop scanning nhưng đợi promise để đảm bảo scanner dừng hoàn toàn
+    console.log('✅ QR Code scanned:', decodedText);
+    isProcessingScan = true; // Đánh dấu đang xử lý
+    
+    // Stop scanning tạm thời (nhưng giữ instance để không phải xin quyền lại)
     if (isScanning && html5QrCode) {
-        isScanning = false; // Set flag trước để tránh scan lại
+        isScanning = false; // Set flag để tạm dừng scan
+        // Stop scanner nhưng KHÔNG clear instance để giữ camera permission
         html5QrCode.stop().then(() => {
-            html5QrCode.clear();
-            html5QrCode = null;
-            console.log('✅ Scanner stopped successfully');
+            console.log('✅ Scanner stopped (instance kept for next use)');
         }).catch((err) => {
             console.warn('⚠️ Error stopping scanner:', err);
-            // Vẫn tiếp tục xử lý check-in dù có lỗi khi stop
-            if (html5QrCode) {
-                html5QrCode.clear();
-                html5QrCode = null;
-            }
         });
     }
     
     // Update UI nhanh
     const startBtn = document.getElementById('start-scan-btn');
     const stopBtn = document.getElementById('stop-scan-btn');
-    if (startBtn) startBtn.style.display = 'block';
+    if (startBtn) {
+        startBtn.style.display = 'block';
+        startBtn.textContent = 'Tiếp tục quét';
+    }
     if (stopBtn) stopBtn.style.display = 'none';
     
     // Show scanned code
@@ -328,17 +344,59 @@ function initCheckinButton() {
 
 function initCheckinAnotherButton() {
     document.getElementById('checkin-another-btn').addEventListener('click', function() {
-        // Reset UI
-        document.getElementById('result-section').style.display = 'none';
-        document.getElementById('ticket-code-input').value = '';
-        document.getElementById('qr-result').style.display = 'none';
-        hideInputError();
-        
-        // Focus on input if manual tab is active
-        if (document.getElementById('manual-tab').classList.contains('active')) {
-            document.getElementById('ticket-code-input').focus();
-        }
+        resetUI();
     });
+}
+
+function resetUI() {
+    // Hide result section
+    const resultSection = document.getElementById('result-section');
+    if (resultSection) resultSection.style.display = 'none';
+    
+    // Show tabs again
+    const tabs = document.querySelector('.tabs');
+    if (tabs) tabs.style.display = 'flex';
+    
+    // Clear manual input
+    const ticketInput = document.getElementById('ticket-code-input');
+    if (ticketInput) {
+        ticketInput.value = '';
+        ticketInput.classList.remove('error');
+    }
+    
+    // Hide QR result
+    const qrResult = document.getElementById('qr-result');
+    if (qrResult) qrResult.style.display = 'none';
+    
+    // Hide input error
+    hideInputError();
+    
+    // Reset to scan tab
+    const manualTab = document.querySelector('[data-tab="manual"]');
+    const scanTab = document.querySelector('[data-tab="scan"]');
+    const manualTabContent = document.getElementById('manual-tab');
+    const scanTabContent = document.getElementById('scan-tab');
+    
+    if (manualTab && scanTab && manualTabContent && scanTabContent) {
+        manualTab.classList.remove('active');
+        scanTab.classList.add('active');
+        manualTabContent.classList.remove('active');
+        scanTabContent.classList.add('active');
+    }
+    
+    // Reset buttons
+    const startBtn = document.getElementById('start-scan-btn');
+    const stopBtn = document.getElementById('stop-scan-btn');
+    if (startBtn) {
+        startBtn.style.display = 'block';
+        startBtn.textContent = 'Bật Camera';
+    }
+    if (stopBtn) stopBtn.style.display = 'none';
+    
+    // Reset processing flag
+    isProcessingScan = false;
+    
+    console.log('✅ UI đã được reset');
 }
 
 // ==================== PROCESS CHECK-IN ====================
