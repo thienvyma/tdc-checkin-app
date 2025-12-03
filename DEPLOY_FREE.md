@@ -5,11 +5,18 @@ Dự án đã vượt quá hạn mức Netlify. Dưới đây là các lựa ch�
 ## 🥇 LỰA CHỌN TỐT NHẤT: GitHub Pages (Khuyến nghị)
 
 ### ✅ Ưu điểm:
-- **Hoàn toàn miễn phí** - Không giới hạn bandwidth
+- **Hoàn toàn miễn phí** - Phù hợp cho dự án cá nhân/nhỏ
 - **Tích hợp với GitHub** - Code đã có sẵn trên GitHub
 - **HTTPS tự động** - Bảo mật miễn phí
 - **Custom domain** - Có thể dùng domain riêng
-- **Không giới hạn** - Build time, bandwidth đều không giới hạn
+- **Giới hạn rộng rãi** - Đủ cho hầu hết các dự án
+
+### ⚠️ Giới hạn sử dụng:
+- **Bandwidth**: 100GB/tháng (soft limit - giới hạn mềm)
+- **Repository size**: Khuyến nghị không quá 1GB
+- **Site size**: Không nên quá 1GB
+- **Builds**: 10 builds/giờ (soft limit)
+- **Lưu ý**: Nếu vượt quá giới hạn, GitHub có thể liên hệ để đề xuất giải pháp
 
 ### 📋 Cách deploy:
 
@@ -81,7 +88,7 @@ URL sẽ thay đổi, nhưng backend API URL vẫn giữ nguyên.
 
 | Platform | Bandwidth | Build Time | Custom Domain | Dễ sử dụng |
 |----------|-----------|------------|---------------|------------|
-| **GitHub Pages** | ✅ Unlimited | ✅ Unlimited | ✅ Free | ⭐⭐⭐⭐⭐ |
+| **GitHub Pages** | ⚠️ 100GB/tháng | ⚠️ 10 builds/giờ | ✅ Free | ⭐⭐⭐⭐⭐ |
 | **Vercel** | ✅ 100GB/tháng | ✅ 100 giờ/tháng | ✅ Free | ⭐⭐⭐⭐⭐ |
 | **Cloudflare Pages** | ✅ Unlimited | ✅ Unlimited | ✅ Free | ⭐⭐⭐⭐ |
 
@@ -91,10 +98,15 @@ URL sẽ thay đổi, nhưng backend API URL vẫn giữ nguyên.
 
 **Chọn GitHub Pages** vì:
 1. ✅ Code đã có trên GitHub
-2. ✅ Hoàn toàn miễn phí, không giới hạn
+2. ✅ Hoàn toàn miễn phí với giới hạn rộng rãi (100GB/tháng)
 3. ✅ Setup đơn giản nhất (chỉ cần enable)
 4. ✅ Tích hợp sẵn với repository
 5. ✅ Không cần cấu hình phức tạp
+
+**Lưu ý về giới hạn:**
+- 100GB bandwidth/tháng thường đủ cho hàng nghìn lượt truy cập
+- Nếu vượt quá, GitHub sẽ liên hệ để đề xuất giải pháp (không tự động tắt)
+- Dự án check-in thường không tốn nhiều bandwidth (chỉ HTML/CSS/JS)
 
 ---
 
