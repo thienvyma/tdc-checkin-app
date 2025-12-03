@@ -4,6 +4,21 @@ let isScanning = false;
 
 // ==================== KHỞI TẠO ====================
 document.addEventListener('DOMContentLoaded', function() {
+    console.log('🚀 Webapp Check-in đã khởi động');
+    console.log('📋 CONFIG:', CONFIG);
+    
+    // Check if CONFIG is loaded
+    if (!CONFIG || !CONFIG.API_URL) {
+        console.error('❌ CONFIG không được load. Kiểm tra file config.js');
+        alert('Lỗi: Không thể load cấu hình. Vui lòng kiểm tra file config.js');
+        return;
+    }
+    
+    if (CONFIG.API_URL === 'YOUR_APPS_SCRIPT_WEB_APP_URL_HERE') {
+        console.warn('⚠️ API_URL chưa được cấu hình');
+        alert('Cảnh báo: API_URL chưa được cấu hình. Vui lòng cập nhật file config.js');
+    }
+    
     initTabs();
     initScanButton();
     initManualInput();
@@ -215,50 +230,85 @@ function initCheckinAnotherButton() {
 
 // ==================== PROCESS CHECK-IN ====================
 function processCheckin(ticketCode, method) {
+    console.log('🚀 Bắt đầu check-in:', { ticketCode, method });
+    
     // Check API URL
-    if (!CONFIG.API_URL || CONFIG.API_URL === 'YOUR_APPS_SCRIPT_WEB_APP_URL_HERE') {
+    if (!CONFIG || !CONFIG.API_URL || CONFIG.API_URL === 'YOUR_APPS_SCRIPT_WEB_APP_URL_HERE') {
+        console.error('❌ API_URL chưa được cấu hình');
         showError('Vui lòng cấu hình API_URL trong file config.js');
+        return;
+    }
+    
+    // Validate ticket code format
+    const pattern = /^EV-\d{8}-\d{6}-[A-Z0-9]{3}$/;
+    if (!pattern.test(ticketCode)) {
+        console.error('❌ Mã vé không đúng format:', ticketCode);
+        showError('Mã vé không đúng định dạng. Ví dụ: EV-20251204-014944-DRI');
         return;
     }
     
     // Show loading
     showLoading();
     
-    // Use GET request (workaround for CORS)
-    // Google Apps Script Web App supports GET with parameters
+    // Build URL with parameters
     const url = CONFIG.API_URL + 
         '?ticketCode=' + encodeURIComponent(ticketCode) + 
         '&checkinMethod=' + encodeURIComponent(method) + 
         '&action=checkin';
     
-    // Send GET request
-    fetch(url, {
-        method: 'GET',
-        mode: 'cors', // Try CORS first
-        cache: 'no-cache'
-    })
-    .then(response => {
-        if (!response.ok) {
-            throw new Error('Network response was not ok');
-        }
-        return response.json();
-    })
-    .then(result => {
+    console.log('📡 Gửi request đến:', url);
+    
+    // Use XMLHttpRequest (better CORS handling with Google Apps Script)
+    const xhr = new XMLHttpRequest();
+    xhr.open('GET', url, true);
+    xhr.setRequestHeader('Accept', 'application/json');
+    xhr.timeout = 15000; // 15 seconds timeout
+    
+    xhr.onload = function() {
+        console.log('📥 Response status:', xhr.status);
+        console.log('📥 Response text:', xhr.responseText);
+        
         hideLoading();
-        showResult(result);
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        // Fallback: Try with no-cors and show generic message
-        hideLoading();
-        showResult({
-            success: true,
-            message: 'Đã gửi yêu cầu check-in. Vui lòng kiểm tra lại trong vài giây.',
-            data: {
-                ticketCode: ticketCode
+        
+        if (xhr.status === 200 || xhr.status === 0) { // 0 for CORS success
+            try {
+                const result = JSON.parse(xhr.responseText);
+                console.log('✅ Parsed result:', result);
+                showResult(result);
+            } catch (e) {
+                console.error('❌ Parse error:', e, 'Response:', xhr.responseText);
+                // Try to show raw response
+                if (xhr.responseText.includes('success')) {
+                    // Maybe it's already JSON but with some wrapper
+                    try {
+                        const result = JSON.parse(xhr.responseText);
+                        showResult(result);
+                    } catch (e2) {
+                        showError('Không thể đọc phản hồi từ server. Vui lòng thử lại.');
+                    }
+                } else {
+                    showError('Phản hồi từ server không hợp lệ. Vui lòng thử lại.');
+                }
             }
-        });
-    });
+        } else {
+            console.error('❌ HTTP Error:', xhr.status, xhr.statusText);
+            showError('Lỗi kết nối: ' + xhr.status + ' ' + xhr.statusText);
+        }
+    };
+    
+    xhr.onerror = function() {
+        console.error('❌ Network error');
+        hideLoading();
+        showError('Không thể kết nối đến server. Vui lòng kiểm tra kết nối internet và thử lại.');
+    };
+    
+    xhr.ontimeout = function() {
+        console.error('❌ Request timeout');
+        hideLoading();
+        showError('Request timeout. Server không phản hồi. Vui lòng thử lại sau.');
+    };
+    
+    xhr.send();
 }
 
 // ==================== UI HELPERS ====================
@@ -305,9 +355,11 @@ function showResult(result) {
 }
 
 function showError(message) {
+    console.error('❌ Error:', message);
     showResult({
         success: false,
-        message: message
+        message: message,
+        errorCode: 'CLIENT_ERROR'
     });
 }
 
