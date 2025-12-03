@@ -175,18 +175,24 @@ function processCheckin(ticketCode, checkinMethod) {
     const checkinTime = Utilities.formatDate(now, Session.getScriptTimeZone(), 'dd/MM/yyyy HH:mm:ss');
     
     // Update status (column F = index 6) với formatting nổi bật
+    const statusRange = ticketSheet.getRange(foundRow, 6);
+    statusRange.setValue('Đã check-in');
+    
+    // Format: In đậm + màu nền xanh lá nổi bật + màu chữ trắng
     try {
-      const statusRange = ticketSheet.getRange(foundRow, 6);
-      statusRange.setValue('Đã check-in');
-      // Format: In đậm + màu nền xanh lá nổi bật + màu chữ trắng
       statusRange.setFontWeight('bold');
       statusRange.setBackground('#28a745'); // Màu xanh lá đẹp
       statusRange.setFontColor('#ffffff'); // Chữ trắng để nổi bật
       statusRange.setHorizontalAlignment('center'); // Căn giữa cho đẹp
+      
+      // Force flush để đảm bảo formatting được apply ngay
+      SpreadsheetApp.flush();
+      
+      Logger.log('✅ Đã format trạng thái "Đã check-in" với màu xanh lá và chữ in đậm');
     } catch (formatError) {
-      // Nếu formatting lỗi, vẫn cập nhật giá trị
-      Logger.log('Formatting error (non-critical): ' + formatError.toString());
-      ticketSheet.getRange(foundRow, 6).setValue('Đã check-in');
+      // Nếu formatting lỗi, log nhưng vẫn tiếp tục
+      Logger.log('⚠️ Formatting error (non-critical): ' + formatError.toString());
+      Logger.log('⚠️ Giá trị "Đã check-in" đã được cập nhật nhưng formatting có thể không áp dụng');
     }
     
     // Update check-in time (column G = index 7)
