@@ -102,6 +102,7 @@ function initScanButton() {
 }
 
 function startScanning() {
+    // Nếu đang scan rồi, không làm gì
     if (isScanning) return;
     
     const qrReader = document.getElementById('qr-reader');
@@ -112,11 +113,17 @@ function startScanning() {
     // Clear previous result
     if (qrResult) qrResult.style.display = 'none';
     
-    // Reset processing flag
+    // Reset processing flags
     isProcessingScan = false;
+    lastScannedCode = ''; // Reset mã đã scan
     
-    // Nếu scanner instance đã tồn tại (từ lần trước), chỉ cần start lại
-    // Điều này giúp không phải xin quyền camera lại
+    // Nếu scanner instance đã tồn tại và đang chạy, không làm gì
+    if (html5QrCode && isScanning) {
+        console.log('📷 Scanner đang chạy rồi');
+        return;
+    }
+    
+    // Nếu scanner instance đã tồn tại nhưng đã stop, start lại
     if (html5QrCode) {
         console.log('📷 Restarting existing scanner (no permission needed)...');
         html5QrCode.start(
@@ -253,6 +260,7 @@ function stopScanning() {
     // Stop scanner nhưng GIỮ instance để không phải xin quyền lại
     isScanning = false;
     isProcessingScan = false;
+    lastScannedCode = ''; // Reset mã đã scan
     
     html5QrCode.stop().then(() => {
         console.log('✅ Scanner stopped (instance kept)');
@@ -274,27 +282,29 @@ function stopScanning() {
 
 // Flag để tạm dừng xử lý scan (tránh scan nhiều lần)
 let isProcessingScan = false;
+let lastScannedCode = ''; // Lưu mã đã scan để tránh scan lại cùng một mã
 
 function onScanSuccess(decodedText, decodedResult) {
+    const ticketCode = decodedText.trim().toUpperCase();
+    
     // Nếu đang xử lý scan trước đó, bỏ qua
     if (isProcessingScan) {
         console.log('⏸️ Đang xử lý scan trước đó, bỏ qua scan mới');
         return;
     }
     
-    console.log('✅ QR Code scanned:', decodedText);
-    isProcessingScan = true; // Đánh dấu đang xử lý
-    
-    // Stop scanning tạm thời (nhưng giữ instance để không phải xin quyền lại)
-    if (isScanning && html5QrCode) {
-        isScanning = false; // Set flag để tạm dừng scan
-        // Stop scanner nhưng KHÔNG clear instance để giữ camera permission
-        html5QrCode.stop().then(() => {
-            console.log('✅ Scanner stopped (instance kept for next use)');
-        }).catch((err) => {
-            console.warn('⚠️ Error stopping scanner:', err);
-        });
+    // Nếu scan lại cùng một mã trong thời gian ngắn, bỏ qua
+    if (lastScannedCode === ticketCode) {
+        console.log('⏸️ Đã scan mã này rồi, bỏ qua');
+        return;
     }
+    
+    console.log('✅ QR Code scanned:', ticketCode);
+    isProcessingScan = true; // Đánh dấu đang xử lý
+    lastScannedCode = ticketCode; // Lưu mã đã scan
+    
+    // KHÔNG stop scanner - chỉ tạm dừng xử lý bằng flag
+    // Điều này giúp giữ camera stream và không phải xin quyền lại
     
     // Update UI nhanh
     const startBtn = document.getElementById('start-scan-btn');
@@ -311,12 +321,11 @@ function onScanSuccess(decodedText, decodedResult) {
         qrResult.style.display = 'block';
         const resultText = qrResult.querySelector('.result-text');
         if (resultText) {
-            resultText.textContent = `Đã quét: ${decodedText}`;
+            resultText.textContent = `Đã quét: ${ticketCode}`;
         }
     }
     
     // Process check-in ngay lập tức (không delay)
-    const ticketCode = decodedText.trim().toUpperCase();
     console.log('🚀 Processing check-in for:', ticketCode);
     processCheckin(ticketCode, 'qr');
 }
@@ -455,8 +464,12 @@ function resetUI() {
     }
     if (stopBtn) stopBtn.style.display = 'none';
     
-    // Reset processing flag
+    // Reset processing flags
     isProcessingScan = false;
+    lastScannedCode = ''; // Reset mã đã scan
+    
+    // Nếu scanner đang chạy, tiếp tục scan (không cần restart)
+    // Nếu scanner đã stop, user có thể bấm "Bật Camera" để start lại
     
     console.log('✅ UI đã được reset');
 }
