@@ -110,7 +110,62 @@ function startScanning() {
     const qrResult = document.getElementById('qr-result');
     
     // Clear previous result
-    qrResult.style.display = 'none';
+    if (qrResult) qrResult.style.display = 'none';
+    
+    // Reset processing flag
+    isProcessingScan = false;
+    
+    // Nếu scanner instance đã tồn tại (từ lần trước), chỉ cần start lại
+    // Điều này giúp không phải xin quyền camera lại
+    if (html5QrCode) {
+        console.log('📷 Restarting existing scanner (no permission needed)...');
+        html5QrCode.start(
+            { facingMode: "environment" },
+            {
+                fps: 30,
+                qrbox: { width: 250, height: 250 },
+                disableFlip: true,
+                videoConstraints: {
+                    facingMode: "environment",
+                    width: { ideal: 320, max: 640 },
+                    height: { ideal: 240, max: 480 }
+                }
+            },
+            onScanSuccess,
+            onScanError
+        ).then(() => {
+            isScanning = true;
+            if (startBtn) {
+                startBtn.style.display = 'none';
+                startBtn.textContent = 'Bật Camera';
+            }
+            if (stopBtn) stopBtn.style.display = 'block';
+            console.log('✅ QR scanner restarted (reused instance)');
+            
+            setTimeout(() => {
+                const videoElement = qrReader.querySelector('video');
+                if (videoElement) {
+                    videoElement.style.transform = 'none';
+                    videoElement.style.objectFit = 'cover';
+                }
+            }, 50);
+        }).catch(err => {
+            console.warn('⚠️ Restart failed, creating new instance:', err);
+            // Nếu restart không được, tạo instance mới
+            html5QrCode = null;
+            initializeScanner();
+        });
+        return;
+    }
+    
+    // Khởi tạo scanner mới (lần đầu tiên)
+    initializeScanner();
+}
+
+function initializeScanner() {
+    const qrReader = document.getElementById('qr-reader');
+    const startBtn = document.getElementById('start-scan-btn');
+    const stopBtn = document.getElementById('stop-scan-btn');
     
     // Initialize scanner
     html5QrCode = new Html5Qrcode("qr-reader");
@@ -141,8 +196,11 @@ function startScanning() {
         onScanError
     ).then(() => {
         isScanning = true;
-        startBtn.style.display = 'none';
-        stopBtn.style.display = 'block';
+        if (startBtn) {
+            startBtn.style.display = 'none';
+            startBtn.textContent = 'Bật Camera';
+        }
+        if (stopBtn) stopBtn.style.display = 'block';
         console.log('✅ QR scanner started with fast settings');
         
         // Fix camera orientation
@@ -168,8 +226,11 @@ function startScanning() {
             onScanError
         ).then(() => {
             isScanning = true;
-            startBtn.style.display = 'none';
-            stopBtn.style.display = 'block';
+            if (startBtn) {
+                startBtn.style.display = 'none';
+                startBtn.textContent = 'Bật Camera';
+            }
+            if (stopBtn) stopBtn.style.display = 'block';
             
             setTimeout(() => {
                 const videoElement = qrReader.querySelector('video');
@@ -181,6 +242,7 @@ function startScanning() {
         }).catch(err2 => {
             console.error('❌ Error with fallback settings:', err2);
             showError('Không thể khởi động camera. Vui lòng kiểm tra quyền truy cập camera.');
+            html5QrCode = null;
         });
     });
 }
