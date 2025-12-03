@@ -129,6 +129,7 @@ function processCheckin(ticketCode, checkinMethod) {
     const ticketSheet = ss.getSheetByName(CONFIG.TICKET_SHEET_NAME);
     
     if (!ticketSheet) {
+      Logger.log('❌ Sheet "Mã Vé" không tồn tại');
       return createResponse(false, 'Không tìm thấy sheet "Mã Vé"', 'SHEET_NOT_FOUND');
     }
     
@@ -146,6 +147,7 @@ function processCheckin(ticketCode, checkinMethod) {
     }
     
     if (foundRow === -1) {
+      Logger.log('❌ Mã vé không tồn tại: ' + ticketCode);
       return createResponse(false, 'Mã vé không tồn tại', 'TICKET_NOT_FOUND');
     }
     
@@ -153,11 +155,11 @@ function processCheckin(ticketCode, checkinMethod) {
     const status = (data[foundRow - 1][5] || '').toString().trim();
     
     if (status === 'Đã check-in') {
-      // Get existing check-in time
       const checkinTime = data[foundRow - 1][6] || '';
       const name = data[foundRow - 1][2] || '';
       const email = data[foundRow - 1][1] || '';
       
+      Logger.log('⚠️ Mã vé đã được check-in: ' + ticketCode);
       return createResponse(false, 'Mã vé này đã được check-in', 'ALREADY_CHECKED_IN', {
         ticketCode: ticketCode,
         name: name,
@@ -167,6 +169,7 @@ function processCheckin(ticketCode, checkinMethod) {
     }
     
     if (status !== 'Đã gửi email') {
+      Logger.log('⚠️ Mã vé chưa được kích hoạt: ' + ticketCode + ' (Status: ' + status + ')');
       return createResponse(false, 'Mã vé chưa được kích hoạt', 'TICKET_NOT_ACTIVATED');
     }
     
@@ -176,64 +179,32 @@ function processCheckin(ticketCode, checkinMethod) {
     
     // Update status (column F = index 6) với formatting nổi bật
     const statusRange = ticketSheet.getRange(foundRow, 6);
-    Logger.log('📝 Updating status at row ' + foundRow + ', column 6');
-    
-    // Set value trước
     statusRange.setValue('Đã check-in');
-    Logger.log('✅ Đã set value "Đã check-in"');
     
     // Update check-in time (column G = index 7)
     ticketSheet.getRange(foundRow, 7).setValue(checkinTime);
     
-    // Get user info trước khi format (để đảm bảo có data trả về)
+    // Get user info
     const name = data[foundRow - 1][2] || '';
     const email = data[foundRow - 1][1] || '';
     
     // Format: In đậm + màu nền xanh lá nổi bật + màu chữ trắng
-    // Lấy lại range để đảm bảo reference đúng
     try {
-      Logger.log('🎨 Bắt đầu format cell tại row ' + foundRow + ', column 6...');
-      
-      // Lấy lại range để đảm bảo reference đúng
       const formatRange = ticketSheet.getRange(foundRow, 6);
-      
-      // Apply formatting từng bước
       formatRange.setFontWeight('bold');
-      Logger.log('✅ Đã set font weight: bold');
-      
-      formatRange.setBackground('#28a745'); // Màu xanh lá đẹp
-      Logger.log('✅ Đã set background: #28a745');
-      
-      formatRange.setFontColor('#ffffff'); // Chữ trắng để nổi bật
-      Logger.log('✅ Đã set font color: #ffffff');
-      
-      formatRange.setHorizontalAlignment('center'); // Căn giữa cho đẹp
-      Logger.log('✅ Đã set alignment: center');
-      
-      // Verify formatting bằng cách đọc lại
-      const fontWeight = formatRange.getFontWeight();
-      const bgColor = formatRange.getBackground();
-      const fontColor = formatRange.getFontColor();
-      Logger.log('🔍 Verify - Font weight: ' + fontWeight + ', Background: ' + bgColor + ', Font color: ' + fontColor);
-      
-      Logger.log('✅ Hoàn tất format trạng thái "Đã check-in" với màu xanh lá và chữ in đậm tại row ' + foundRow);
+      formatRange.setBackground('#28a745');
+      formatRange.setFontColor('#ffffff');
+      formatRange.setHorizontalAlignment('center');
     } catch (formatError) {
-      // Nếu formatting lỗi, log chi tiết
-      Logger.log('❌ Formatting error: ' + formatError.toString());
-      Logger.log('❌ Error stack: ' + (formatError.stack || 'No stack trace'));
-      Logger.log('⚠️ Giá trị "Đã check-in" đã được cập nhật nhưng formatting có thể không áp dụng');
-      
-      // Thử format lại với cách khác (A1 notation)
+      // Thử format lại với A1 notation nếu cách đầu tiên lỗi
       try {
         const a1Notation = 'F' + foundRow;
-        const altRange = ticketSheet.getRange(a1Notation);
-        altRange.setFontWeight('bold');
-        altRange.setBackground('#28a745');
-        altRange.setFontColor('#ffffff');
-        altRange.setHorizontalAlignment('center');
-        Logger.log('✅ Đã format lại thành công bằng A1 notation: ' + a1Notation);
+        ticketSheet.getRange(a1Notation).setFontWeight('bold')
+          .setBackground('#28a745')
+          .setFontColor('#ffffff')
+          .setHorizontalAlignment('center');
       } catch (altError) {
-        Logger.log('❌ Format bằng A1 notation cũng lỗi: ' + altError.toString());
+        Logger.log('⚠️ Formatting error (non-critical): ' + altError.toString());
       }
     }
     
@@ -241,10 +212,11 @@ function processCheckin(ticketCode, checkinMethod) {
     try {
       logCheckin(ticketCode, name, email, checkinTime, checkinMethod);
     } catch (logError) {
-      Logger.log('⚠️ Log error (non-critical): ' + logError.toString());
+      Logger.log('⚠️ Log error: ' + logError.toString());
     }
     
-    // Trả về response ngay lập tức (không đợi formatting)
+    Logger.log('✅ Check-in thành công: ' + ticketCode + ' (' + checkinMethod + ')');
+    
     return createResponse(true, 'Check-in thành công!', 'SUCCESS', {
       ticketCode: ticketCode,
       name: name,
@@ -253,7 +225,7 @@ function processCheckin(ticketCode, checkinMethod) {
     });
     
   } catch (error) {
-    Logger.log('Error in processCheckin: ' + error.toString());
+    Logger.log('❌ Error in processCheckin: ' + error.toString());
     return createResponse(false, 'Lỗi hệ thống: ' + error.toString(), 'SYSTEM_ERROR');
   }
 }
