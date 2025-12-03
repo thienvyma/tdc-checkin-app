@@ -115,11 +115,32 @@ function startScanning() {
     // Initialize scanner
     html5QrCode = new Html5Qrcode("qr-reader");
     
+    // Calculate optimal QR box size based on screen
+    const qrReaderElement = qrReader;
+    const readerWidth = qrReaderElement.clientWidth || 300;
+    const readerHeight = qrReaderElement.clientHeight || 300;
+    const qrBoxSize = Math.min(readerWidth, readerHeight) * 0.8; // 80% of smaller dimension
+    
+    console.log('📷 Starting QR scanner with optimized settings...');
+    
     html5QrCode.start(
-        { facingMode: "environment" }, // Use back camera
+        { 
+            facingMode: "environment", // Use back camera
+            aspectRatio: { ideal: 1.0 } // Square aspect ratio for better QR detection
+        },
         {
-            fps: 10,
-            qrbox: { width: 250, height: 250 }
+            fps: 30, // Tăng từ 10 lên 30 để quét nhanh hơn
+            qrbox: { 
+                width: Math.min(qrBoxSize, 400), // Tối đa 400px
+                height: Math.min(qrBoxSize, 400) 
+            },
+            aspectRatio: 1.0, // Square for better QR code detection
+            disableFlip: false, // Allow rotation
+            videoConstraints: {
+                facingMode: "environment",
+                width: { ideal: 1280 }, // Higher resolution for better detection
+                height: { ideal: 1280 }
+            }
         },
         onScanSuccess,
         onScanError
@@ -127,9 +148,31 @@ function startScanning() {
         isScanning = true;
         startBtn.style.display = 'none';
         stopBtn.style.display = 'block';
+        console.log('✅ QR scanner started successfully');
     }).catch(err => {
-        console.error('Error starting scanner:', err);
-        showError('Không thể khởi động camera. Vui lòng kiểm tra quyền truy cập camera.');
+        console.error('❌ Error starting scanner:', err);
+        // Try with lower settings if high settings fail
+        if (err.toString().includes('NotReadableError') || err.toString().includes('OverconstrainedError')) {
+            console.log('⚠️ Trying with lower resolution...');
+            html5QrCode.start(
+                { facingMode: "environment" },
+                {
+                    fps: 20,
+                    qrbox: { width: 300, height: 300 }
+                },
+                onScanSuccess,
+                onScanError
+            ).then(() => {
+                isScanning = true;
+                startBtn.style.display = 'none';
+                stopBtn.style.display = 'block';
+            }).catch(err2 => {
+                console.error('❌ Error with fallback settings:', err2);
+                showError('Không thể khởi động camera. Vui lòng kiểm tra quyền truy cập camera.');
+            });
+        } else {
+            showError('Không thể khởi động camera. Vui lòng kiểm tra quyền truy cập camera.');
+        }
     });
 }
 
