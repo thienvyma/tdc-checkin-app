@@ -202,29 +202,45 @@ function stopScanning() {
 }
 
 function onScanSuccess(decodedText, decodedResult) {
-    // Stop scanning IMMEDIATELY để tránh scan nhiều lần và tiết kiệm tài nguyên
-    if (isScanning && html5QrCode) {
-        html5QrCode.stop().catch(() => {}); // Stop ngay, không đợi promise
-        html5QrCode.clear();
-        html5QrCode = null;
-        isScanning = false;
-    }
-    
     console.log('✅ QR Code scanned:', decodedText);
+    
+    // Stop scanning nhưng đợi promise để đảm bảo scanner dừng hoàn toàn
+    if (isScanning && html5QrCode) {
+        isScanning = false; // Set flag trước để tránh scan lại
+        html5QrCode.stop().then(() => {
+            html5QrCode.clear();
+            html5QrCode = null;
+            console.log('✅ Scanner stopped successfully');
+        }).catch((err) => {
+            console.warn('⚠️ Error stopping scanner:', err);
+            // Vẫn tiếp tục xử lý check-in dù có lỗi khi stop
+            if (html5QrCode) {
+                html5QrCode.clear();
+                html5QrCode = null;
+            }
+        });
+    }
     
     // Update UI nhanh
     const startBtn = document.getElementById('start-scan-btn');
     const stopBtn = document.getElementById('stop-scan-btn');
-    startBtn.style.display = 'block';
-    stopBtn.style.display = 'none';
+    if (startBtn) startBtn.style.display = 'block';
+    if (stopBtn) stopBtn.style.display = 'none';
     
     // Show scanned code
     const qrResult = document.getElementById('qr-result');
-    qrResult.style.display = 'block';
-    qrResult.querySelector('.result-text').textContent = `Đã quét: ${decodedText}`;
+    if (qrResult) {
+        qrResult.style.display = 'block';
+        const resultText = qrResult.querySelector('.result-text');
+        if (resultText) {
+            resultText.textContent = `Đã quét: ${decodedText}`;
+        }
+    }
     
     // Process check-in ngay lập tức (không delay)
-    processCheckin(decodedText.trim().toUpperCase(), 'qr');
+    const ticketCode = decodedText.trim().toUpperCase();
+    console.log('🚀 Processing check-in for:', ticketCode);
+    processCheckin(ticketCode, 'qr');
 }
 
 function onScanError(errorMessage) {
