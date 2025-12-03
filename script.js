@@ -119,28 +119,35 @@ function startScanning() {
     const qrReaderElement = qrReader;
     const readerWidth = qrReaderElement.clientWidth || 300;
     const readerHeight = qrReaderElement.clientHeight || 300;
-    const qrBoxSize = Math.min(readerWidth, readerHeight) * 0.8; // 80% of smaller dimension
+    const qrBoxSize = Math.min(readerWidth, readerHeight) * 0.75; // 75% for better detection
     
     console.log('📷 Starting QR scanner with optimized settings...');
+    console.log('📐 QR Box size:', qrBoxSize);
     
+    // Optimized settings for speed and accuracy
     html5QrCode.start(
         { 
-            facingMode: "environment", // Use back camera
-            aspectRatio: { ideal: 1.0 } // Square aspect ratio for better QR detection
+            facingMode: "environment" // Use back camera (không mirror)
         },
         {
-            fps: 30, // Tăng từ 10 lên 30 để quét nhanh hơn
+            fps: 30, // High FPS for fast scanning
             qrbox: { 
-                width: Math.min(qrBoxSize, 400), // Tối đa 400px
-                height: Math.min(qrBoxSize, 400) 
+                width: Math.min(qrBoxSize, 350), // Optimal size for detection
+                height: Math.min(qrBoxSize, 350) 
             },
             aspectRatio: 1.0, // Square for better QR code detection
-            disableFlip: false, // Allow rotation
+            disableFlip: true, // Disable flip to prevent rotation issues
+            // Lower resolution for faster processing (tốc độ quan trọng hơn độ nét)
             videoConstraints: {
                 facingMode: "environment",
-                width: { ideal: 1280 }, // Higher resolution for better detection
-                height: { ideal: 1280 }
-            }
+                width: { ideal: 640, max: 1280 }, // Giảm resolution để tăng tốc độ
+                height: { ideal: 640, max: 1280 }
+            },
+            // Additional optimizations for speed
+            // formatsToSupport: [ Html5QrcodeSupportedFormats.QR_CODE ], // Chỉ scan QR code (nếu library hỗ trợ)
+            // experimentalFeatures: {
+            //     useBarCodeDetectorIfSupported: true // Use native barcode detector if available (faster)
+            // }
         },
         onScanSuccess,
         onScanError
@@ -149,6 +156,15 @@ function startScanning() {
         startBtn.style.display = 'none';
         stopBtn.style.display = 'block';
         console.log('✅ QR scanner started successfully');
+        
+        // Fix camera orientation after start
+        setTimeout(() => {
+            const videoElement = qrReader.querySelector('video');
+            if (videoElement) {
+                videoElement.style.transform = 'none'; // Không mirror cho back camera
+                videoElement.style.objectFit = 'cover';
+            }
+        }, 100);
     }).catch(err => {
         console.error('❌ Error starting scanner:', err);
         // Try with lower settings if high settings fail
@@ -157,8 +173,9 @@ function startScanning() {
             html5QrCode.start(
                 { facingMode: "environment" },
                 {
-                    fps: 20,
-                    qrbox: { width: 300, height: 300 }
+                    fps: 25, // Still fast but more compatible
+                    qrbox: { width: 300, height: 300 },
+                    disableFlip: true
                 },
                 onScanSuccess,
                 onScanError
@@ -166,6 +183,15 @@ function startScanning() {
                 isScanning = true;
                 startBtn.style.display = 'none';
                 stopBtn.style.display = 'block';
+                
+                // Fix camera orientation
+                setTimeout(() => {
+                    const videoElement = qrReader.querySelector('video');
+                    if (videoElement) {
+                        videoElement.style.transform = 'none';
+                        videoElement.style.objectFit = 'cover';
+                    }
+                }, 100);
             }).catch(err2 => {
                 console.error('❌ Error with fallback settings:', err2);
                 showError('Không thể khởi động camera. Vui lòng kiểm tra quyền truy cập camera.');

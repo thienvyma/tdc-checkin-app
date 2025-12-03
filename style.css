@@ -112,9 +112,10 @@ body {
 /* Optimize video rendering for better performance */
 .qr-reader video {
     width: 100%;
-    height: auto;
+    height: 100%;
     object-fit: cover;
-    transform: scaleX(-1); /* Mirror for better UX */
+    transform: none; /* Không mirror cho back camera */
+    display: block;
 }
 
 .qr-reader canvas {
@@ -123,6 +124,19 @@ body {
     left: 0;
     width: 100%;
     height: 100%;
+    pointer-events: none; /* Không chặn touch events */
+}
+
+/* QR code scanning box overlay */
+.qr-reader #qr-shaded-region {
+    border: 2px solid #667eea !important;
+    border-radius: 10px;
+    box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.5);
+}
+
+/* Ensure proper aspect ratio */
+.qr-reader {
+    aspect-ratio: 1 / 1; /* Square container */
 }
 
 .qr-result {
