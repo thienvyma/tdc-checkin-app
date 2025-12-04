@@ -131,7 +131,7 @@ function startScanning() {
             { facingMode: "environment" },
             {
                 fps: 10,
-                qrbox: 250,
+                qrbox: { width: 250, height: 250 },
                 disableFlip: true
             },
             onScanSuccess,
@@ -180,7 +180,7 @@ function initializeScanner() {
         { facingMode: "environment" },
         {
             fps: 10,
-            qrbox: 250,
+            qrbox: { width: 250, height: 250 },
             disableFlip: true
         },
         onScanSuccess,
