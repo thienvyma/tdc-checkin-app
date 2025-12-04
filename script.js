@@ -126,17 +126,13 @@ function startScanning() {
     // Nếu scanner instance đã tồn tại nhưng đã stop, start lại
     if (html5QrCode) {
         console.log('📷 Restarting existing scanner (no permission needed)...');
+        // Dùng cấu hình "an toàn" theo docs của html5-qrcode để đảm bảo độ ổn định
         html5QrCode.start(
             { facingMode: "environment" },
             {
-                fps: 30,
-                qrbox: { width: 250, height: 250 },
-                disableFlip: true,
-                videoConstraints: {
-                    facingMode: "environment",
-                    width: { ideal: 320, max: 640 },
-                    height: { ideal: 240, max: 480 }
-                }
+                fps: 10,
+                qrbox: 250,
+                disableFlip: true
             },
             onScanSuccess,
             onScanError
@@ -177,27 +173,15 @@ function initializeScanner() {
     // Initialize scanner
     html5QrCode = new Html5Qrcode("qr-reader");
     
-    console.log('📷 Starting QR scanner with MAXIMUM SPEED settings...');
+    console.log('📷 Starting QR scanner with safe default settings...');
     
-    // TỐI ƯU TỐC ĐỘ TỐI ĐA - Giảm resolution và QR box để xử lý nhanh nhất
+    // Cấu hình đơn giản & ổn định theo khuyến nghị của thư viện
     html5QrCode.start(
-        { 
-            facingMode: "environment"
-        },
+        { facingMode: "environment" },
         {
-            fps: 30, // FPS cao để quét nhiều frame hơn
-            qrbox: { 
-                width: 250, // QR box nhỏ hơn = xử lý ít pixel hơn = nhanh hơn
-                height: 250 
-            },
-            // Bỏ aspectRatio và các tùy chọn không cần thiết
-            disableFlip: true,
-            // Resolution THẤP NHẤT có thể để tăng tốc độ xử lý
-            videoConstraints: {
-                facingMode: "environment",
-                width: { ideal: 320, max: 640 }, // Resolution rất thấp để xử lý nhanh
-                height: { ideal: 240, max: 480 }
-            }
+            fps: 10,
+            qrbox: 250,
+            disableFlip: true
         },
         onScanSuccess,
         onScanError
@@ -220,37 +204,8 @@ function initializeScanner() {
         }, 50);
     }).catch(err => {
         console.error('❌ Error starting scanner:', err);
-        // Fallback với settings đơn giản nhất
-        console.log('⚠️ Trying with minimal settings...');
-        html5QrCode.start(
-            { facingMode: "environment" },
-            {
-                fps: 30,
-                qrbox: { width: 250, height: 250 }
-                // Không set videoConstraints để browser tự chọn resolution thấp nhất
-            },
-            onScanSuccess,
-            onScanError
-        ).then(() => {
-            isScanning = true;
-            if (startBtn) {
-                startBtn.style.display = 'none';
-                startBtn.textContent = 'Bật Camera';
-            }
-            if (stopBtn) stopBtn.style.display = 'block';
-            
-            setTimeout(() => {
-                const videoElement = qrReader.querySelector('video');
-                if (videoElement) {
-                    videoElement.style.transform = 'none';
-                    videoElement.style.objectFit = 'cover';
-                }
-            }, 50);
-        }).catch(err2 => {
-            console.error('❌ Error with fallback settings:', err2);
-            showError('Không thể khởi động camera. Vui lòng kiểm tra quyền truy cập camera.');
-            html5QrCode = null;
-        });
+        showError('Không thể khởi động camera. Vui lòng kiểm tra quyền truy cập camera.');
+        html5QrCode = null;
     });
 }
 
@@ -331,7 +286,8 @@ function onScanSuccess(decodedText, decodedResult) {
 }
 
 function onScanError(errorMessage) {
-    // Ignore scanning errors (they happen frequently during scanning)
+    // Thêm log để dễ debug khi không nhận được mã
+    console.debug('QR scan error frame:', errorMessage);
 }
 
 // ==================== MANUAL INPUT ====================
