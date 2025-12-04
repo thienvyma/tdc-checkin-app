@@ -24,6 +24,9 @@ document.addEventListener('DOMContentLoaded', function() {
     initManualInput();
     initCheckinButton();
     initCheckinAnotherButton();
+
+    // Tự động đọc mã từ URL (?code=...) – hỗ trợ quét trực tiếp bằng camera hệ thống
+    handleCodeFromUrl();
     
     // Auto-focus input khi chuyển sang tab manual
     document.querySelector('[data-tab="manual"]').addEventListener('click', function() {
@@ -240,7 +243,26 @@ let isProcessingScan = false;
 let lastScannedCode = ''; // Lưu mã đã scan để tránh scan lại cùng một mã
 
 function onScanSuccess(decodedText, decodedResult) {
-    const ticketCode = decodedText.trim().toUpperCase();
+    let raw = decodedText.trim();
+    let ticketCode = '';
+
+    // TH1: QR chứa URL ?code=... (quét bằng camera hệ thống hoặc trong app)
+    try {
+        if (raw.startsWith('http://') || raw.startsWith('https://')) {
+            const urlObj = new URL(raw);
+            const urlCode = urlObj.searchParams.get('code');
+            if (urlCode) {
+                ticketCode = urlCode.trim().toUpperCase();
+            }
+        }
+    } catch (e) {
+        console.warn('⚠️ Không parse được URL từ QR:', e);
+    }
+
+    // TH2: QR chỉ chứa mã EV-... như cũ
+    if (!ticketCode) {
+        ticketCode = raw.toUpperCase();
+    }
     
     // Nếu đang xử lý scan trước đó, bỏ qua
     if (isProcessingScan) {
@@ -373,6 +395,28 @@ function initCheckinAnotherButton() {
     document.getElementById('checkin-another-btn').addEventListener('click', function() {
         resetUI();
     });
+}
+
+// Đọc mã từ query string (?code=...) và tự động check-in
+function handleCodeFromUrl() {
+    try {
+        const params = new URLSearchParams(window.location.search);
+        const urlCode = params.get('code');
+        if (!urlCode) return;
+
+        const ticketCode = urlCode.trim().toUpperCase();
+        const input = document.getElementById('ticket-code-input');
+
+        // Điền vào ô nhập để admin thấy rõ
+        if (input) {
+            input.value = ticketCode;
+        }
+
+        console.log('🔗 Found code in URL, auto check-in:', ticketCode);
+        processCheckin(ticketCode, 'qr-url');
+    } catch (e) {
+        console.warn('⚠️ handleCodeFromUrl error:', e);
+    }
 }
 
 function resetUI() {
