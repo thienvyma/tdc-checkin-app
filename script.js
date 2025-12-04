@@ -99,8 +99,23 @@ function initTabs() {
 function initScanButton() {
     const startBtn = document.getElementById('start-scan-btn');
     const stopBtn = document.getElementById('stop-scan-btn');
-    
-    startBtn.addEventListener('click', startScanning);
+
+    // Khi bấm "Bật Camera", luôn hiển thị cảnh báo trước trên mọi thiết bị
+    startBtn.addEventListener('click', function () {
+        const message = [
+            '📱 Khuyến nghị:',
+            '- Trên điện thoại, nên ưu tiên dùng camera mặc định để quét mã QR trên E-ticket,',
+            '  điện thoại sẽ tự mở trang TDC Check-in và hệ thống tự check-in.',
+            '',
+            'Bạn vẫn muốn bật camera trong trình duyệt để quét trực tiếp?'
+        ].join('\n');
+
+        const ok = window.confirm(message);
+        if (!ok) return;
+
+        startScanning();
+    });
+
     stopBtn.addEventListener('click', stopScanning);
 }
 
